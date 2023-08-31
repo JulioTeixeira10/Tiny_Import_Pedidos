@@ -1,24 +1,49 @@
-import requests, json, configparser, csv, os, datetime
+import requests, json, configparser, csv, os, datetime, ctypes, logging
 
 
 class send_requests:
-    def __init__(self, token, formato, headers):
+    def __init__(self, token, formato, headers): # Cria os atributos necessários para o inicializador
         self.token = token
         self.formato = formato
         self.headers = headers
 
-    def fetch_orders_id(self, url, d_inicial, d_final):
+    def fetch_orders_id(self, url, d_inicial, d_final): # Função para pegar ID's dos pedidos
         global resposta
         data = f"token={self.token}&formato={self.formato}&dataInicial={d_inicial}&dataFinal={d_final}"
         response = requests.post(url, headers=self.headers, data=data)
         resposta = response.text
 
-    def get_orders(self, url, id):
+    def get_orders(self, url, id): # Função para pegar os pedidos
         global resposta2
         data = f"token={self.token}&formato={self.formato}&id={id}"
         response = requests.post(url, headers=self.headers, data=data)
         resposta2 = response.text
         
+class error_treatment:
+    def __init__(self):
+        self.MB_OK = 0x0
+        self.ICON_INFO = 0x40
+        self.ICON_ERROR = 0x10
+        self.logger = logging.getLogger('my_logger') #Cria o objeto de log
+        self.logger.setLevel(logging.INFO) #Configura o nível de log
+        handler = logging.FileHandler('C:\\Tiny_Orders\\log_file.log') #Cria arquivo handler
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S') #Define o formato do log
+        handler.setFormatter(formatter) #Define o formato do log para o handler
+        self.logger.addHandler(handler) #Adiciona o handler ao logger
+
+    def pop_up_erro(self, erro):
+        ctypes.windll.user32.MessageBoxW(0, f"{erro}", "ERRO:", self.MB_OK | self.ICON_ERROR)
+        
+    def pop_up_info(self, info):
+        ctypes.windll.user32.MessageBoxW(0, f"{info}", "INFO:", self.MB_OK | self.ICON_INFO)
+    
+    def log_erro(self, erro):
+        self.logger.error(erro)
+
+    def log_info(self, info):
+        self.logger.info(info)
+
+error_log = error_treatment()
 
 # Função para formatar à uma variável um objeto JSON
 def jsonfy(directory, variavel):
@@ -48,30 +73,29 @@ orders_id = list()
 for order in orders:
     orders_id.append(order["pedido"]["id"])
 
-
-# Assuming you have fetched the date string from a config file
+# Formata a data do pedido
 date_string = data
-
-# Parse the date string using strptime
 parsed_date = datetime.datetime.strptime(date_string, '%d/%m/%Y')
-
-# Format the date in the desired format (year-month-day)
 formatted_date = parsed_date.strftime('%Y-%m-%d')
 
-data_directory = f'C:\\Tiny_Orders\\Tiny_Pedidos\\{formatted_date}'
-os.makedirs(data_directory, exist_ok=True)
+# Cria o diretório (caso não exista) para armazenar os pedidos 
+date_directory = f'C:\\Tiny_Orders\\Tiny_Pedidos\\{formatted_date}'
+os.makedirs(date_directory, exist_ok=True)
 
+# Processa os pedidos
 for pedido in orders_id:
+    # Manda a request para obter os pedidos
     api_link.get_orders("https://api.tiny.com.br/api2/pedido.obter.php", pedido)
 
     # Extrai os campos necessários do pedido
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
+    data_path = res_parsed["retorno"]["pedido"]
+    client_name = data_path["cliente"]["nome"]
+    final_price = data_path["total_pedido"]
+    n_ecommerece = data_path["numero_ecommerce"]
 
-    client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
-    final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
-    n_ecommerece = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
-
-    with open(f'{data_directory}\\{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
+    # Grava em um CSV os dados formatados do JSON em cada pedido
+    with open(f'{date_directory}\\{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
         csv_writer = csv.writer(file)
         for venda in res_parsed["retorno"]["pedido"]["itens"]:
             bar_code = venda["item"]["codigo"]
