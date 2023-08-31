@@ -50,17 +50,20 @@ for order in orders:
 
 
 
+for pedido in orders_id:
+    api_link.get_orders("https://api.tiny.com.br/api2/pedido.obter.php", pedido)
 
-api_link.get_orders("https://api.tiny.com.br/api2/pedido.obter.php", "761440137")
+    # Extrai os campos necessários do pedido
+    res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
 
-# Extrai os campos necessários do pedido
-res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
+    client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
+    final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
 
-client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
-final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
-
-for venda in res_parsed["retorno"]["pedido"]["itens"]:
-    bar_code = venda["item"]["codigo"]
-    name = venda["item"]["descricao"]
-    quantity = venda["item"]["quantidade"]
-    price = venda["item"]["valor_unitario"]
+    with open(f'{client_name}-{final_price}.csv', 'w', newline='') as file:
+        csv_writer = csv.writer(file)
+        for venda in res_parsed["retorno"]["pedido"]["itens"]:
+            bar_code = venda["item"]["codigo"]
+            name = venda["item"]["descricao"]
+            quantity = venda["item"]["quantidade"]
+            price = venda["item"]["valor_unitario"]
+            csv_writer.writerow([bar_code, name, quantity, price])
