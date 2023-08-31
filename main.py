@@ -6,6 +6,9 @@ class send_requests:
         self.token = token
         self.formato = formato
         self.headers = headers
+        # Cria o diretório principal caso não exista
+        date_directory_main = f'C:\\Tiny_Orders\\Tiny_Pedidos'
+        os.makedirs(date_directory_main, exist_ok=True)
 
     def fetch_orders_id(self, url, d_inicial, d_final): # Função para pegar ID's dos pedidos
         global resposta
