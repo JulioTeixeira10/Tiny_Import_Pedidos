@@ -1,4 +1,4 @@
-import requests, json, configparser, csv
+import requests, json, configparser, csv, os, datetime
 
 
 class send_requests:
@@ -49,6 +49,17 @@ for order in orders:
     orders_id.append(order["pedido"]["id"])
 
 
+# Assuming you have fetched the date string from a config file
+date_string = data
+
+# Parse the date string using strptime
+parsed_date = datetime.datetime.strptime(date_string, '%d/%m/%Y')
+
+# Format the date in the desired format (year-month-day)
+formatted_date = parsed_date.strftime('%Y-%m-%d')
+
+data_directory = f'C:\\Tiny_Orders\\Tiny_Pedidos\\{formatted_date}'
+os.makedirs(data_directory, exist_ok=True)
 
 for pedido in orders_id:
     api_link.get_orders("https://api.tiny.com.br/api2/pedido.obter.php", pedido)
@@ -58,8 +69,9 @@ for pedido in orders_id:
 
     client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
     final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
+    n_ecommerece = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
 
-    with open(f'{client_name}-{final_price}.csv', 'w', newline='') as file:
+    with open(f'{data_directory}\\{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
         csv_writer = csv.writer(file)
         for venda in res_parsed["retorno"]["pedido"]["itens"]:
             bar_code = venda["item"]["codigo"]
