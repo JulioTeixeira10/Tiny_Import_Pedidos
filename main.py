@@ -24,12 +24,12 @@ class error_treatment:
         self.MB_OK = 0x0
         self.ICON_INFO = 0x40
         self.ICON_ERROR = 0x10
-        self.logger = logging.getLogger('my_logger') #Cria o objeto de log
-        self.logger.setLevel(logging.INFO) #Configura o nível de log
-        handler = logging.FileHandler('C:\\Tiny_Orders\\log_file.log') #Cria arquivo handler
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S') #Define o formato do log
-        handler.setFormatter(formatter) #Define o formato do log para o handler
-        self.logger.addHandler(handler) #Adiciona o handler ao logger
+        self.logger = logging.getLogger('my_logger') # Cria o objeto de log
+        self.logger.setLevel(logging.INFO) # Configura o nível de log
+        handler = logging.FileHandler('C:\\Tiny_Orders\\log_file.log') # Cria arquivo handler
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S') # Define o formato do log
+        handler.setFormatter(formatter) # Define o formato do log para o handler
+        self.logger.addHandler(handler) # Adiciona o handler ao logger
 
     def pop_up_erro(self, erro):
         ctypes.windll.user32.MessageBoxW(0, f"{erro}", "ERRO:", self.MB_OK | self.ICON_ERROR)
@@ -95,7 +95,7 @@ for pedido in orders_id:
     n_ecommerece = data_path["numero_ecommerce"]
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
-    with open(f'{date_directory}\\{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
+    with open(f'{date_directory}\\#{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
         csv_writer = csv.writer(file)
         for venda in res_parsed["retorno"]["pedido"]["itens"]:
             bar_code = venda["item"]["codigo"]
