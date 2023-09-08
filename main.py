@@ -1,4 +1,4 @@
-import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, time, socket
+import requests, json, configparser, csv, os, datetime, ctypes, logging, sys
 
 
 class send_requests:
