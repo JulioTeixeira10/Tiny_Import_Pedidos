@@ -108,16 +108,22 @@ for pedido in orders_id:
 
     # Extrai os campos necessários do pedido
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
+
+    if res_parsed["retorno"]["pedido"]["obs_interna"] == "CFe":
+        break
+    
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
         final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
-        n_ecommerece = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
+        n_ecommerce = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
+        if type(n_ecommerce) != str:
+            n_ecommerce = res_parsed["retorno"]["pedido"]["numero"]
     except Exception as E:
         error_log.log_erro(E)
         error_log.pop_up_erro("Houve um erro ao ler parâmetros do arquivo JSON. \n Verifique o log para mais detalhes.")
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
-    with open(f'{date_directory}\\#{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='', encoding='utf-8') as file:
+    with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price}.csv', 'w', newline='', encoding='utf-8') as file:
         csv_writer = csv.writer(file)
         try:
             for venda in res_parsed["retorno"]["pedido"]["itens"]:
