@@ -1,4 +1,4 @@
-import requests, json, configparser, csv, os, datetime, ctypes, logging
+import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, time, socket
 
 
 class send_requests:
@@ -46,7 +46,6 @@ class error_treatment:
     def log_info(self, info):
         self.logger.info(info)
 
-error_log = error_treatment()
 
 # Função para formatar à uma variável um objeto JSON
 def jsonfy(directory, variavel):
@@ -56,12 +55,19 @@ def jsonfy(directory, variavel):
         file.close()
         return response_parsed
 
+# Cria uma instância da class para tratamento de erros
+error_log = error_treatment()
 
 # Pega o token e a data do arquivo .cfg
 config = configparser.ConfigParser()
 config.read("C:\\TinyAPI\\token.cfg")
-token = config.get("KEY", "token")
-data = config.get("KEY", "data")
+if "KEY" in config:
+    token = config.get("KEY", "token")
+    data = config.get("KEY", "data")
+else:
+    error_log.log_erro("O token e/ou data não foram encontrados no arquivo de configuração ou o mesmo não foi encontrado.")
+    error_log.pop_up_erro("Valores Token e/ou Data não encontrados. \nVerifique que o arquivo .cfg existe.")
+    sys.exit()
 
 # Cria uma instância da class e atribui os valores: token, format e headers
 api_link = send_requests(token, "JSON", {"Content-Type": "application/x-www-form-urlencoded"})
@@ -71,8 +77,18 @@ api_link.fetch_orders_id("https://api.tiny.com.br/api2/pedidos.pesquisa.php", da
 
 # Extrai e armazena em uma lista os id's de todos os pedidos
 res_parsed = jsonfy("C:\\Tiny_Orders\\id_orders.json", resposta)
+
+# Converte res_parsed a uma string
+res_parsed_text = json.dumps(res_parsed)
+
+if "Erro" in res_parsed_text:
+    error_log.log_erro("A pesquisa não retornou resultados.")
+    error_log.pop_up_erro(f"Não foram encontrados pedidos no dia {data}.")
+    sys.exit()
+
 orders = res_parsed["retorno"]["pedidos"]
 orders_id = list()
+
 for order in orders:
     orders_id.append(order["pedido"]["id"])
 
@@ -86,23 +102,36 @@ date_directory = f'C:\\Tiny_Orders\\Tiny_Pedidos\\{formatted_date}'
 os.makedirs(date_directory, exist_ok=True)
 
 # Processa os pedidos
+c = 0
 for pedido in orders_id:
     # Manda a request para obter os pedidos
     api_link.get_orders("https://api.tiny.com.br/api2/pedido.obter.php", pedido)
 
     # Extrai os campos necessários do pedido
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
-    data_path = res_parsed["retorno"]["pedido"]
-    client_name = data_path["cliente"]["nome"]
-    final_price = data_path["total_pedido"]
-    n_ecommerece = data_path["numero_ecommerce"]
+    try:
+        client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
+        final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
+        n_ecommerece = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
+    except Exception as E:
+        error_log.log_erro(E)
+        error_log.pop_up_erro("Houve um erro ao ler parâmetros do arquivo JSON. \n Verifique o log para mais detalhes.")
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
-    with open(f'{date_directory}\\#{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='') as file:
+    with open(f'{date_directory}\\#{n_ecommerece}-{client_name}-{final_price}.csv', 'w', newline='', encoding='utf-8') as file:
         csv_writer = csv.writer(file)
-        for venda in res_parsed["retorno"]["pedido"]["itens"]:
-            bar_code = venda["item"]["codigo"]
-            name = venda["item"]["descricao"]
-            quantity = venda["item"]["quantidade"]
-            price = venda["item"]["valor_unitario"]
-            csv_writer.writerow([bar_code, name, quantity, price])
+        try:
+            for venda in res_parsed["retorno"]["pedido"]["itens"]:
+                bar_code = venda["item"]["codigo"]
+                name = venda["item"]["descricao"]
+                quantity = venda["item"]["quantidade"]
+                price = venda["item"]["valor_unitario"]
+                csv_writer.writerow([bar_code, name, quantity, price])
+        except Exception as E:
+            error_log.log_erro(E)
+            error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
+    c += 1
+
+error_log.pop_up_info(f"Foram recebidos: {c} pedidos do dia {data}")
+error_log.log_info(f"Foram recebidos: {c} pedidos do dia {data}")
+sys.exit()
