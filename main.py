@@ -109,6 +109,7 @@ for pedido in orders_id:
     # Extrai os campos necessários do pedido
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
 
+    # Filtra os pedidos que tem CFe
     if res_parsed["retorno"]["pedido"]["obs_interna"] == "CFe":
         break
     
