@@ -1,4 +1,4 @@
-import requests, json, configparser, csv, os, datetime, ctypes, logging, sys
+import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, limit_timer
 
 
 class send_requests:
@@ -57,6 +57,9 @@ def jsonfy(directory, variavel):
 # Cria uma instância da class para tratamento de erros
 error_log = error_treatment()
 
+# Armazena o valor limite de requests
+request_limit = 6
+
 # Pega o token e a data do arquivo .cfg
 config = configparser.ConfigParser()
 config.read("C:\\TinyAPI\\token.cfg")
@@ -88,8 +91,15 @@ if "Erro" in res_parsed_text:
 orders = res_parsed["retorno"]["pedidos"]
 orders_id = list()
 
+# Armazena em uma lista os ID's dos pedidos
 for order in orders:
     orders_id.append(order["pedido"]["id"])
+
+# Verifica se a quantidade de ID's irá exceder o limite de chamadas da API
+if len(orders_id) > request_limit:
+    API_limit = True
+else:
+    API_limit = False
 
 # Formata a data do pedido
 date_string = data
@@ -136,6 +146,8 @@ for pedido in orders_id:
         except Exception as E:
             error_log.log_erro(E)
             error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
+    if c == request_limit and API_limit == True:
+        limit_timer.create_timer_window() # Chama a função de timer
     c += 1
 
 error_log.pop_up_info(f"Foram recebidos: {c} pedidos do dia {data}")
