@@ -58,7 +58,7 @@ def jsonfy(directory, variavel):
 error_log = error_treatment()
 
 # Armazena o valor limite de requests
-request_limit = 6
+request_limit = 29
 
 # Pega o token e a data do arquivo .cfg
 config = configparser.ConfigParser()
@@ -146,7 +146,7 @@ for pedido in orders_id:
         except Exception as E:
             error_log.log_erro(E)
             error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
-    if c == request_limit and API_limit == True:
+    if c == (request_limit - 1) and API_limit == True:
         limit_timer.create_timer_window() # Chama a função de timer
     c += 1
 
