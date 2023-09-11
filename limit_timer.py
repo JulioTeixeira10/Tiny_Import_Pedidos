@@ -36,7 +36,7 @@ def create_timer_window():
     label.pack(pady=10)
 
     # Define o tempo para o temporizador
-    countdown(10)
+    countdown(61)
 
     # Previne o fechamento da janela
     root.protocol("WM_DELETE_WINDOW", on_closing)

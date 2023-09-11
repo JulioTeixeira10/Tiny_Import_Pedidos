@@ -95,6 +95,12 @@ orders_id = list()
 for order in orders:
     orders_id.append(order["pedido"]["id"])
 
+# Tratamento para erro ao exceder o limite de pedidos diarios
+if len(orders_id) > 58:
+    error_log.pop_up_erro("Limite de pedidos excedidos.")
+    error_log.log_info("O limite de pedidos para um dia é de 58. Ao exceder, um erro foi gerado.")
+    sys.exit()
+
 # Verifica se a quantidade de ID's irá exceder o limite de chamadas da API
 if len(orders_id) > request_limit:
     API_limit = True
@@ -135,7 +141,7 @@ for pedido in orders_id:
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
     with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price}.csv', 'w', newline='', encoding='utf-8') as file:
-        csv_writer = csv.writer(file)
+        csv_writer = csv.writer(file, delimiter=";")
         try:
             for venda in res_parsed["retorno"]["pedido"]["itens"]:
                 bar_code = venda["item"]["codigo"]
@@ -147,6 +153,7 @@ for pedido in orders_id:
             error_log.log_erro(E)
             error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
     if c == (request_limit - 1) and API_limit == True:
+        error_log.log_info("Limite de requests atingido.")
         limit_timer.create_timer_window() # Chama a função de timer
     c += 1
 
