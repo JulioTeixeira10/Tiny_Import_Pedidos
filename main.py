@@ -96,7 +96,7 @@ for order in orders:
     orders_id.append(order["pedido"]["id"])
 
 # Tratamento para erro ao exceder o limite de pedidos diarios
-if len(orders_id) > 58:
+if len(orders_id) > 59:
     error_log.pop_up_erro("Limite de pedidos excedidos.")
     error_log.log_info("O limite de pedidos para um dia é de 58. Ao exceder, um erro foi gerado.")
     sys.exit()
