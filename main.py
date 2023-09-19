@@ -132,6 +132,7 @@ for pedido in orders_id:
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
         final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
+        final_price_replaced = final_price.replace(".",",")
         n_ecommerce = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
         if type(n_ecommerce) != str:
             n_ecommerce = res_parsed["retorno"]["pedido"]["numero"]
@@ -140,7 +141,7 @@ for pedido in orders_id:
         error_log.pop_up_erro("Houve um erro ao ler parâmetros do arquivo JSON. \n Verifique o log para mais detalhes.")
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
-    with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price}.csv', 'w', newline='', encoding='utf-8') as file:
+    with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
         csv_writer = csv.writer(file, delimiter=";")
         try:
             for venda in res_parsed["retorno"]["pedido"]["itens"]:
