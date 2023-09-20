@@ -131,6 +131,8 @@ for pedido in orders_id:
     
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
+        if "-" in client_name:
+            client_name = client_name.replace("-","_")
         final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
         final_price_replaced = final_price.replace(".",",")
         n_ecommerce = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
