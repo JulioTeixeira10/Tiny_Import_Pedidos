@@ -127,7 +127,7 @@ for pedido in orders_id:
 
     # Filtra os pedidos que tem CFe
     if res_parsed["retorno"]["pedido"]["obs_interna"] == "CFe":
-        break
+        continue
     
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
