@@ -1,4 +1,4 @@
-import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, limit_timer
+import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, limit_timer, math
 
 
 class send_requests:
@@ -132,15 +132,27 @@ for pedido in orders_id:
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
         if "-" in client_name:
-            client_name = client_name.replace("-","_")
+            client_name = client_name.replace("-", "_")
         final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
-        final_price_replaced = final_price.replace(".",",")
+        final_price_replaced = final_price.replace(".", ",")
+        desconto = res_parsed["retorno"]["pedido"]["valor_desconto"]
         n_ecommerce = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
         if type(n_ecommerce) != str:
             n_ecommerce = res_parsed["retorno"]["pedido"]["numero"]
     except Exception as E:
         error_log.log_erro(E)
         error_log.pop_up_erro("Houve um erro ao ler parâmetros do arquivo JSON. \n Verifique o log para mais detalhes.")
+
+    # Cálculo de desconto
+    original_price = float(final_price) + float(desconto)
+    discount_percentage = (desconto / original_price) * 100
+
+    # Arredonda para o valor mais perto
+    possiveis_descontos = [5, 7, 10, 12, 15]
+    rounded_percentage = min(possiveis_descontos, key=lambda x: abs(x - discount_percentage))
+
+    # Convert to int if needed
+    porcentagem_converted = int(rounded_percentage)
 
     # Grava em um CSV os dados formatados do JSON em cada pedido
     with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
@@ -151,6 +163,11 @@ for pedido in orders_id:
                 name = venda["item"]["descricao"]
                 quantity = venda["item"]["quantidade"]
                 price = venda["item"]["valor_unitario"]
+                if desconto > 0:
+                    price = round(float(price) * (1 - porcentagem_converted / 100), 4)
+                else:
+                    pass
+
                 csv_writer.writerow([bar_code, name, quantity, price])
         except Exception as E:
             error_log.log_erro(E)
