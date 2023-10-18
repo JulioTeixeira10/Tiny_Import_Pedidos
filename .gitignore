@@ -3,3 +3,5 @@ order_fields.json
 Tiny_Pedidos
 log_file.log
 Tiny_Pedidos.exe
+dict.txt
+__pycache__
