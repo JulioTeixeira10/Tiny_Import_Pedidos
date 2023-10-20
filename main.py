@@ -1,4 +1,4 @@
-import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, limit_timer, math
+import requests, json, configparser, csv, os, datetime, ctypes, logging, sys, limit_timer, openpyxl
 
 
 class send_requests:
@@ -83,19 +83,20 @@ res_parsed = jsonfy("C:\\Tiny_Orders\\id_orders.json", resposta)
 # Converte res_parsed a uma string
 res_parsed_text = json.dumps(res_parsed)
 
+# Verifica se não houve pedidos na data
 if "Erro" in res_parsed_text:
     error_log.log_erro("A pesquisa não retornou resultados.")
     error_log.pop_up_erro(f"Não foram encontrados pedidos no dia {data}.")
     sys.exit()
 
+# Armazena em uma lista os ID's dos pedidos
 orders = res_parsed["retorno"]["pedidos"]
 orders_id = list()
 
-# Armazena em uma lista os ID's dos pedidos
 for order in orders:
     orders_id.append(order["pedido"]["id"])
 
-# Tratamento para erro ao exceder o limite de pedidos diarios
+# Tratamento de erro ao exceder o limite de pedidos diarios
 if len(orders_id) > 59:
     error_log.pop_up_erro("Limite de pedidos excedidos.")
     error_log.log_info("O limite de pedidos para um dia é de 58. Ao exceder, um erro foi gerado.")
@@ -116,6 +117,16 @@ formatted_date = parsed_date.strftime('%Y-%m-%d')
 date_directory = f'C:\\Tiny_Orders\\Tiny_Pedidos\\{formatted_date}'
 os.makedirs(date_directory, exist_ok=True)
 
+# Carrega a planilha xlsx e define as fileiras
+try:
+    workbook = openpyxl.load_workbook('C:\\Tiny_Orders\\tabela.xlsx')
+    worksheet = workbook['Planilha1']
+except:
+    error_log.pop_up_erro("Não foi possivel abrir a planilha, verifique o log para mais informações")
+    error_log.log_erro("Não foi possivel abrir a planilha, verifique que a planilha está no local correto e que o nome da folha é Planilha1")
+next_row = worksheet.max_row + 1
+next_row += 1
+
 # Processa os pedidos
 c = 0
 for pedido in orders_id:
@@ -125,20 +136,34 @@ for pedido in orders_id:
     # Extrai os campos necessários do pedido
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
 
+    # Define se o vendedor é um vendedor em específico
+    id_vendedor = res_parsed["retorno"]["pedido"]["id_vendedor"]
+    if id_vendedor == "768676428":
+        vendedor = True
+    else:
+        vendedor = False
+
     # Filtra os pedidos que tem CFe
     if res_parsed["retorno"]["pedido"]["obs_interna"] == "CFe":
         continue
     
+    # Pega as informações necessárias do pedido
     try:
         client_name = res_parsed["retorno"]["pedido"]["cliente"]["nome"]
+
         if "-" in client_name:
             client_name = client_name.replace("-", "_")
+
         final_price = res_parsed["retorno"]["pedido"]["total_pedido"]
         final_price_replaced = final_price.replace(".", ",")
         desconto = res_parsed["retorno"]["pedido"]["valor_desconto"]
         n_ecommerce = res_parsed["retorno"]["pedido"]["numero_ecommerce"]
+        data_pedido = res_parsed["retorno"]["pedido"]["data_pedido"]
+        total_pedido = res_parsed["retorno"]["pedido"]["total_pedido"]
+
         if type(n_ecommerce) != str:
             n_ecommerce = res_parsed["retorno"]["pedido"]["numero"]
+
     except Exception as E:
         error_log.log_erro(E)
         error_log.pop_up_erro("Houve um erro ao ler parâmetros do arquivo JSON. \n Verifique o log para mais detalhes.")
@@ -151,32 +176,88 @@ for pedido in orders_id:
     possiveis_descontos = [5, 7, 10, 12, 15]
     rounded_percentage = min(possiveis_descontos, key=lambda x: abs(x - discount_percentage))
 
-    # Convert to int if needed
+    # Faz a conversão para int
     porcentagem_converted = int(rounded_percentage)
+    
+    if vendedor:
 
-    # Grava em um CSV os dados formatados do JSON em cada pedido
-    with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
-        csv_writer = csv.writer(file, delimiter=";")
-        try:
-            for venda in res_parsed["retorno"]["pedido"]["itens"]:
-                bar_code = venda["item"]["codigo"]
-                name = venda["item"]["descricao"]
-                quantity = venda["item"]["quantidade"]
-                price = venda["item"]["valor_unitario"]
-                if desconto > 0:
-                    price = round(float(price) * (1 - porcentagem_converted / 100), 4)
-                else:
-                    pass
+        # Lê o dicionário que armazena os ID's e os preços
+        with open('dict.txt', 'r') as file:
+            content = file.read()
+        id_prices = eval(content)
 
-                csv_writer.writerow([bar_code, name, quantity, price])
-        except Exception as E:
-            error_log.log_erro(E)
-            error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
-    if c == (request_limit - 1) and API_limit == True:
-        error_log.log_info("Limite de requests atingido.")
-        limit_timer.create_timer_window() # Chama a função de timer
-    c += 1
+        diff = 0
 
+        # Grava em um CSV os dados formatados do JSON em cada pedido
+        with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
+            
+            csv_writer = csv.writer(file, delimiter=";")
+            
+            try:
+                for venda in res_parsed["retorno"]["pedido"]["itens"]:
+                    id_produto = venda["item"]["id_produto"]
+                    bar_code = venda["item"]["codigo"]
+                    name = venda["item"]["descricao"]
+                    quantity = venda["item"]["quantidade"]
+                    price = venda["item"]["valor_unitario"] # Preço colocado no produto
+                    price2 = id_prices.get(id_produto) # Preço de tabela
+
+                    if float(price) > float(price2): # Detecta se há diferença de preço e armazena a diferença
+                        diff = diff + (round((float(price) - float(price2)),2) * float(quantity))
+
+                    if desconto > 0: # Detecta se existe desconto no pedido
+                        price = round(float(price) * (1 - porcentagem_converted / 100), 4)
+                        csv_writer.writerow([bar_code, name, quantity, price])
+                    else:
+                        csv_writer.writerow([bar_code, name, quantity, price2])
+
+                # Escreve no xlsx as informações de valores cobrados a mais no pedido
+                worksheet.cell(row=next_row, column=1, value=data_pedido)
+                worksheet.cell(row=next_row, column=2, value=n_ecommerce)
+                worksheet.cell(row=next_row, column=3, value=client_name)
+                worksheet.cell(row=next_row, column=4, value=total_pedido)
+                worksheet.cell(row=next_row, column=5, value=float(total_pedido) - round(float(diff), 2))
+                worksheet.cell(row=next_row, column=6, value=round(diff, 2))
+
+                next_row += 1
+            except Exception as E:
+                error_log.log_erro(E)
+                error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
+
+        # Detecta se o limite da API foi ultrapasado
+        if c == (request_limit - 1) and API_limit == True:
+            error_log.log_info("Limite de requests atingido.")
+            limit_timer.create_timer_window() # Chama a função de timer
+        c += 1
+    else:
+
+        # Grava em um CSV os dados formatados do JSON em cada pedido
+        with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
+            csv_writer = csv.writer(file, delimiter=";")
+            try:
+                for venda in res_parsed["retorno"]["pedido"]["itens"]:
+                    bar_code = venda["item"]["codigo"]
+                    name = venda["item"]["descricao"]
+                    quantity = venda["item"]["quantidade"]
+                    price = venda["item"]["valor_unitario"]
+                    if desconto > 0:
+                        price = round(float(price) * (1 - porcentagem_converted / 100), 4)
+                    else:
+                        pass
+
+                    csv_writer.writerow([bar_code, name, quantity, price])
+            except Exception as E:
+                error_log.log_erro(E)
+                error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
+        if c == (request_limit - 1) and API_limit == True:
+            error_log.log_info("Limite de requests atingido.")
+            limit_timer.create_timer_window() # Chama a função de timer
+        c += 1
+
+# Salva o arquivo xlsx
+workbook.save('C:\\Tiny_Orders\\tabela.xlsx')
+
+# Mostra informações finais sobre a operação
 error_log.pop_up_info(f"Foram recebidos: {c} pedidos do dia {data}")
 error_log.log_info(f"Foram recebidos: {c} pedidos do dia {data}")
 sys.exit()
