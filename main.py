@@ -124,6 +124,7 @@ try:
 except:
     error_log.pop_up_erro("Não foi possivel abrir a planilha, verifique o log para mais informações")
     error_log.log_erro("Não foi possivel abrir a planilha, verifique que a planilha está no local correto e que o nome da folha é Planilha1")
+    sys.exit()
 next_row = worksheet.max_row + 1
 next_row += 1
 
