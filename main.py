@@ -183,7 +183,7 @@ for pedido in orders_id:
     if vendedor:
 
         # Lê o dicionário que armazena os ID's e os preços
-        with open('dict.txt', 'r') as file:
+        with open('C:\\Tiny_Orders\\dict.txt', 'r') as file:
             content = file.read()
         id_prices = eval(content)
 
