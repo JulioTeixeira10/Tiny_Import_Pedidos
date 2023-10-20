@@ -200,7 +200,12 @@ for pedido in orders_id:
                     name = venda["item"]["descricao"]
                     quantity = venda["item"]["quantidade"]
                     price = venda["item"]["valor_unitario"] # Preço colocado no produto
-                    price2 = id_prices.get(id_produto) # Preço de tabela
+                    try:
+                        price2 = id_prices.get(id_produto) # Preço de tabela
+                    except Exception as E:
+                        error_log.log_erro(E)
+                        error_log.pop_up_erro(f"O produto '{id_produto}' não foi encontrado na base de dados.")
+                        sys.exit()
 
                     if float(price) > float(price2): # Detecta se há diferença de preço e armazena a diferença
                         diff = diff + (round((float(price) - float(price2)),2) * float(quantity))
