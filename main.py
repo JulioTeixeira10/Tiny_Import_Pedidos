@@ -211,8 +211,10 @@ for pedido in orders_id:
                     if float(price) > float(price2): # Detecta se há diferença de preço e armazena a diferença
                         diff = diff + (round((float(price) - float(price2)),2) * float(quantity))
 
-                    if desconto > 0: # Detecta se existe desconto no pedido
+                    if (desconto > 0): # Detecta se existe desconto no pedido
                         price = round(float(price) * (1 - porcentagem_converted / 100), 4)
+                        csv_writer.writerow([bar_code, name, quantity, price])
+                    elif (float(price) < float(price2)):
                         csv_writer.writerow([bar_code, name, quantity, price])
                     else:
                         csv_writer.writerow([bar_code, name, quantity, price2])
