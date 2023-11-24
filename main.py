@@ -92,7 +92,6 @@ if "Erro" in res_parsed_text:
 # Armazena em uma lista os ID's dos pedidos
 orders = res_parsed["retorno"]["pedidos"]
 orders_id = list()
-
 for order in orders:
     orders_id.append(order["pedido"]["id"])
 
@@ -119,11 +118,11 @@ os.makedirs(date_directory, exist_ok=True)
 
 # Carrega a planilha xlsx e define as fileiras
 try:
-    workbook = openpyxl.load_workbook('C:\\Tiny_Orders\\tabela.xlsx')
+    workbook = openpyxl.load_workbook('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Assis.xlsx')
     worksheet = workbook['Planilha1']
-except:
+except Exception as e:
     error_log.pop_up_erro("Não foi possivel abrir a planilha, verifique o log para mais informações")
-    error_log.log_erro("Não foi possivel abrir a planilha, verifique que a planilha está no local correto e que o nome da folha é Planilha1")
+    error_log.log_erro(f"Não foi possivel abrir a planilha, verifique que a planilha está no local correto e que o nome da folha é Planilha1 \n {e}")
     sys.exit()
 next_row = worksheet.max_row + 1
 next_row += 1
@@ -138,7 +137,13 @@ for pedido in orders_id:
     res_parsed = jsonfy("C:\\Tiny_Orders\\order_fields.json", resposta2)
 
     # Define se o vendedor é um vendedor em específico
-    id_vendedor = res_parsed["retorno"]["pedido"]["id_vendedor"]
+    try:
+        id_vendedor = res_parsed["retorno"]["pedido"]["id_vendedor"]
+    except KeyError as e:
+        error_log.log_erro("O limite da API foi excedido.")
+        error_log.pop_up_erro("Limite da API excedido. Espere 1 minuto e tente novamente.")
+        sys.exit()
+
     if id_vendedor == "768676428":
         vendedor = True
     else:
@@ -171,7 +176,12 @@ for pedido in orders_id:
 
     # Cálculo de desconto
     original_price = float(final_price) + float(desconto)
-    discount_percentage = (desconto / original_price) * 100
+    try:
+        discount_percentage = (desconto / original_price) * 100
+    except Exception as E:
+        error_log.log_erro(E)
+        error_log.pop_up_erro(f"O pedido {pedido} está vazio, portanto será ignorado.")
+        continue
 
     # Arredonda para o valor mais perto
     possiveis_descontos = [5, 7, 10, 12, 15]
@@ -181,7 +191,6 @@ for pedido in orders_id:
     porcentagem_converted = int(rounded_percentage)
     
     if vendedor:
-
         # Lê o dicionário que armazena os ID's e os preços
         with open('C:\\Tiny_Orders\\dict.txt', 'r') as file:
             content = file.read()
@@ -238,7 +247,6 @@ for pedido in orders_id:
             limit_timer.create_timer_window() # Chama a função de timer
         c += 1
     else:
-
         # Grava em um CSV os dados formatados do JSON em cada pedido
         with open(f'{date_directory}\\#{n_ecommerce}-{client_name}-{final_price_replaced}.csv', 'w', newline='', encoding='utf-8') as file:
             csv_writer = csv.writer(file, delimiter=";")
@@ -263,7 +271,11 @@ for pedido in orders_id:
         c += 1
 
 # Salva o arquivo xlsx
-workbook.save('C:\\Tiny_Orders\\tabela.xlsx')
+try:
+    workbook.save('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Assis.xlsx')
+except PermissionError as e:
+    error_log.pop_up_erro(f"Não foi possível salvar a planilha, certifique-se sempre que o arquivo está fechado. \n (--Este dia terá que ser baixado novamente--)")
+    error_log.log_info(e)
 
 # Mostra informações finais sobre a operação
 error_log.pop_up_info(f"Foram recebidos: {c} pedidos do dia {data}")
