@@ -184,11 +184,11 @@ for pedido in orders_id:
         continue
 
     # Arredonda para o valor mais perto
-    possiveis_descontos = [5, 7, 10, 12, 15, 20]
+    possiveis_descontos = [5, 7, 10, 12, 15, 20, 23.9243]
     rounded_percentage = min(possiveis_descontos, key=lambda x: abs(x - discount_percentage))
 
     # Faz a conversão para int
-    porcentagem_converted = int(rounded_percentage)
+    porcentagem_converted = float(rounded_percentage)
     
     if vendedor:
         # Lê o dicionário que armazena os ID's e os preços
@@ -210,11 +210,11 @@ for pedido in orders_id:
                     name = venda["item"]["descricao"]
                     quantity = venda["item"]["quantidade"]
                     price = venda["item"]["valor_unitario"] # Preço colocado no produto
-                    try:
-                        price2 = id_prices.get(id_produto) # Preço de tabela
-                    except Exception as E:
-                        error_log.log_erro(E)
-                        error_log.pop_up_erro(f"O produto '{id_produto}' não foi encontrado na base de dados.")
+                    price2 = id_prices.get(id_produto) # Preço de tabela
+
+                    if id_produto not in id_prices:
+                        error_log.log_erro(f"O produto '{name}', com o código '{bar_code} e id '{id_produto}' não foi encontrado na base de dados.")
+                        error_log.pop_up_erro(f"O produto '{name}', com o código '{bar_code} e id '{id_produto}' não foi encontrado na base de dados. \n Adicione o produto à lista de produtos e tente novamente.")
                         sys.exit()
 
                     if float(price) > float(price2): # Detecta se há diferença de preço e armazena a diferença
