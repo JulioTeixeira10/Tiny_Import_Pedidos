@@ -120,12 +120,18 @@ os.makedirs(date_directory, exist_ok=True)
 try:
     workbook = openpyxl.load_workbook('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Assis.xlsx')
     worksheet = workbook['Planilha1']
+    workbook1 = openpyxl.load_workbook('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Flavio.xlsx')
+    worksheet1 = workbook1['Planilha1']
 except Exception as e:
     error_log.pop_up_erro("Não foi possivel abrir a planilha, verifique o log para mais informações")
     error_log.log_erro(f"Não foi possivel abrir a planilha, verifique que a planilha está no local correto e que o nome da folha é Planilha1 \n {e}")
     sys.exit()
+
+# Controle de fileiras para não sobrescrever informações
 next_row = worksheet.max_row + 1
 next_row += 1
+next_row1 = worksheet1.max_row + 1
+next_row1 += 1
 
 # Processa os pedidos
 c = 0
@@ -144,7 +150,8 @@ for pedido in orders_id:
         error_log.pop_up_erro("Limite da API excedido. Espere 1 minuto e tente novamente.")
         sys.exit()
 
-    if id_vendedor == "768676428":
+    # Detecta se o vendedor é um vendedor em específico
+    if id_vendedor == "768676428" or id_vendedor == "819786177":
         vendedor = True
     else:
         vendedor = False
@@ -184,11 +191,11 @@ for pedido in orders_id:
         continue
 
     # Arredonda para o valor mais perto
-    possiveis_descontos = [5, 7, 10, 12, 15, 20, 23.9243]
+    possiveis_descontos = [3, 5, 7, 10, 12, 15, 20]
     rounded_percentage = min(possiveis_descontos, key=lambda x: abs(x - discount_percentage))
 
-    # Faz a conversão para int
-    porcentagem_converted = float(rounded_percentage)
+    # Faz a conversão de decimal para um valor inteiro
+    porcentagem_converted = int(rounded_percentage)
     
     if vendedor:
         # Lê o dicionário que armazena os ID's e os preços
@@ -229,20 +236,29 @@ for pedido in orders_id:
                         csv_writer.writerow([bar_code, name, quantity, price2])
 
                 # Escreve no xlsx as informações de valores cobrados a mais no pedido
-                worksheet.cell(row=next_row, column=1, value=data_pedido)
-                worksheet.cell(row=next_row, column=2, value=n_ecommerce)
-                worksheet.cell(row=next_row, column=3, value=client_name)
-                worksheet.cell(row=next_row, column=4, value=total_pedido)
-                worksheet.cell(row=next_row, column=5, value=float(total_pedido) - round(float(diff), 2))
-                worksheet.cell(row=next_row, column=6, value=round(diff, 2))
-
-                next_row += 1
+                if id_vendedor == "768676428":
+                    worksheet.cell(row=next_row, column=1, value=data_pedido)
+                    worksheet.cell(row=next_row, column=2, value=n_ecommerce)
+                    worksheet.cell(row=next_row, column=3, value=client_name)
+                    worksheet.cell(row=next_row, column=4, value=total_pedido)
+                    worksheet.cell(row=next_row, column=5, value=float(total_pedido) - round(float(diff), 2))
+                    worksheet.cell(row=next_row, column=6, value=round(diff, 2))
+                    next_row += 1
+                elif id_vendedor == "819786177":
+                    worksheet1.cell(row=next_row1, column=1, value=data_pedido)
+                    worksheet1.cell(row=next_row1, column=2, value=n_ecommerce)
+                    worksheet1.cell(row=next_row1, column=3, value=client_name)
+                    worksheet1.cell(row=next_row1, column=4, value=total_pedido)
+                    worksheet1.cell(row=next_row1, column=5, value=float(total_pedido) - round(float(diff), 2))
+                    worksheet1.cell(row=next_row1, column=6, value=round(diff, 2))
+                    next_row1 += 1
+        
             except Exception as E:
                 error_log.log_erro(E)
                 error_log.pop_up_erro("Houve um erro ao criar os arquivos CSV. \n Verifique o log para mais detalhes.")
 
         # Detecta se o limite da API foi ultrapasado
-        if c == (request_limit - 1) and API_limit == True:
+        if c == (request_limit - 1) and API_limit:
             error_log.log_info("Limite de requests atingido.")
             limit_timer.create_timer_window() # Chama a função de timer
         c += 1
@@ -273,6 +289,7 @@ for pedido in orders_id:
 # Salva o arquivo xlsx
 try:
     workbook.save('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Assis.xlsx')
+    workbook1.save('C:\\Users\\User\\Dropbox\\FINANCEIRO 2023\\YASMIN\\Planilha Flavio.xlsx')
 except PermissionError as e:
     error_log.pop_up_erro(f"Não foi possível salvar a planilha, certifique-se sempre que o arquivo está fechado. \n (--Este dia terá que ser baixado novamente--)")
     error_log.log_info(e)
