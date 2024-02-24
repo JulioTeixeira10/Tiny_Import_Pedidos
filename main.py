@@ -191,7 +191,7 @@ for pedido in orders_id:
         continue
 
     # Arredonda para o valor mais perto
-    possiveis_descontos = [3, 5, 7, 10, 12, 15, 20]
+    possiveis_descontos = [2, 3, 5, 7, 10, 12, 15, 20]
     rounded_percentage = min(possiveis_descontos, key=lambda x: abs(x - discount_percentage))
 
     # Faz a conversão de decimal para um valor inteiro
