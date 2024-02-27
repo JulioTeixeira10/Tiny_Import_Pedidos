@@ -159,6 +159,10 @@ for pedido in orders_id:
     # Filtra os pedidos que tem CFe
     if res_parsed["retorno"]["pedido"]["obs_interna"] == "CFe":
         continue
+
+    if res_parsed["retorno"]["pedido"]["situacao"] == "Cancelado":
+        error_log.log_info(f"Pedido [{pedido}] ignorado pois foi cancelado na plataforma de origem.")
+        continue
     
     # Pega as informações necessárias do pedido
     try:
